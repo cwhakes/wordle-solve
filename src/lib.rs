@@ -47,9 +47,14 @@ pub struct Guess {
 
 impl Guess {
 	fn matches(&self, word: &str) -> bool {
-		
 		let mut used = [false; 5];
-		for (i, ((g, w), m)) in self.word.chars().zip(word.chars()).zip(self.mask).enumerate() {
+		for (i, ((g, w), m)) in self
+			.word
+			.chars()
+			.zip(word.chars())
+			.zip(self.mask)
+			.enumerate()
+		{
 			match m {
 				Correctness::Correct => {
 					if g != w {
@@ -74,7 +79,7 @@ impl Guess {
 			if m == Correctness::Misplaced {
 				let mut found = false;
 				for w in word.chars() {
-					if !*u && w==g {
+					if !*u && w == g {
 						found = true;
 						*u = true;
 					}
@@ -195,14 +200,15 @@ mod tests {
 	}
 
 	mod guess {
-		use super::{Guess, Correctness};
+		use super::{Correctness, Guess};
 
 		#[test]
 		fn test_similar_word() {
 			assert!(Guess {
 				word: "crate".to_string(),
 				mask: mask![W C C C C],
-			}.matches("grate"))
+			}
+			.matches("grate"))
 		}
 
 		#[test]
@@ -210,7 +216,8 @@ mod tests {
 			assert!(Guess {
 				word: "sugar".to_string(),
 				mask: mask![W W W M M],
-			}.matches("hoard"))
+			}
+			.matches("hoard"))
 		}
 
 		#[test]
@@ -218,21 +225,24 @@ mod tests {
 			assert!(Guess {
 				word: "which".to_string(),
 				mask: mask![W W M W W],
-			}.matches("mania"))
+			}
+			.matches("mania"))
 		}
 		#[test]
 		fn test_mania2() {
 			assert!(Guess {
 				word: "first".to_string(),
 				mask: mask![W M W W W],
-			}.matches("mania"))
+			}
+			.matches("mania"))
 		}
 		#[test]
 		fn test_mania3() {
 			assert!(Guess {
 				word: "again".to_string(),
 				mask: mask![M W M C M],
-			}.matches("mania"))
+			}
+			.matches("mania"))
 		}
 	}
 }
