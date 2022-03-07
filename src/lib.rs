@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet};
+use std::collections::BTreeSet;
 
 pub mod algorithms {
 	mod naive;
@@ -39,9 +39,54 @@ impl Wordle {
 	}
 }
 
+#[derive(Debug)]
 pub struct Guess {
 	word: String,
 	mask: [Correctness; 5],
+}
+
+impl Guess {
+	fn matches(&self, word: &str) -> bool {
+		
+		let mut used = [false; 5];
+		for (i, ((g, w), m)) in self.word.chars().zip(word.chars()).zip(self.mask).enumerate() {
+			match m {
+				Correctness::Correct => {
+					if g != w {
+						return false;
+					} else {
+						used[i] = true;
+					}
+				}
+				Correctness::Misplaced => {
+					if g == w {
+						return false;
+					}
+				}
+				Correctness::Wrong => {
+					if g == w {
+						return false;
+					}
+				}
+			}
+		}
+		for ((g, m), u) in self.word.chars().zip(self.mask).zip(&mut used) {
+			if m == Correctness::Misplaced {
+				let mut found = false;
+				for w in word.chars() {
+					if !*u && w==g {
+						found = true;
+						*u = true;
+					}
+				}
+				if !found {
+					return false;
+				}
+			}
+		}
+
+		true
+	}
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -101,50 +146,93 @@ fn wordle_array(word: &str) -> Option<[char; 5]> {
 }
 #[cfg(test)]
 macro_rules! guesser {
-    (|$history: ident| $impl:block) => {{
-        struct G;
-        impl crate::Guesser for G {
-            fn guess(&mut self, $history: &[Guess]) -> String {
-                $impl
-            }
-        }
-        G
-    }}
+	(|$history: ident| $impl:block) => {{
+		struct G;
+		impl crate::Guesser for G {
+			fn guess(&mut self, $history: &[Guess]) -> String {
+				$impl
+			}
+		}
+		G
+	}};
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	macro_rules! mask {
+		(C) => {Correctness::Correct};
+		(M) => {Correctness::Misplaced};
+		(W) => {Correctness::Wrong};
+		($($c:tt)+) => {[
+			$(mask!($c)),+
+		]}
+	}
+
 	mod game {
-		use super::{Guess,  Wordle};
+		use super::{Guess, Wordle};
 		#[test]
 		fn play1() {
 			let w = Wordle::new();
-            let guesser = guesser!(|_history| {String::from("right")});
+			let guesser = guesser!(|_history| { String::from("right") });
 			assert_eq!(w.play("right", guesser), Some(1));
 		}
-        #[test]
+		#[test]
 		fn play32() {
 			let w = Wordle::new();
-            let guesser = guesser!(|_history| {String::from("wrong")});
+			let guesser = guesser!(|_history| { String::from("wrong") });
 			assert_eq!(w.play("right", guesser), None);
 		}
 	}
 	mod correctness {
 		use super::Correctness;
 
-		macro_rules! mask {
-            (C) => {Correctness::Correct};
-            (M) => {Correctness::Misplaced};
-            (W) => {Correctness::Wrong};
-            ($($c:tt)+) => {[
-                $(mask!($c)),+
-            ]}
-        }
-
 		#[test]
 		fn test_correctness() {
 			assert_eq!(Correctness::check("aaabb", "abbab"), mask![C M W M C])
+		}
+	}
+
+	mod guess {
+		use super::{Guess, Correctness};
+
+		#[test]
+		fn test_similar_word() {
+			assert!(Guess {
+				word: "crate".to_string(),
+				mask: mask![W C C C C],
+			}.matches("grate"))
+		}
+
+		#[test]
+		fn test_disimilar_word() {
+			assert!(Guess {
+				word: "sugar".to_string(),
+				mask: mask![W W W M M],
+			}.matches("hoard"))
+		}
+
+		#[test]
+		fn test_mania1() {
+			assert!(Guess {
+				word: "which".to_string(),
+				mask: mask![W W M W W],
+			}.matches("mania"))
+		}
+		#[test]
+		fn test_mania2() {
+			assert!(Guess {
+				word: "first".to_string(),
+				mask: mask![W M W W W],
+			}.matches("mania"))
+		}
+		#[test]
+		fn test_mania3() {
+			assert!(Guess {
+				word: "again".to_string(),
+				mask: mask![M W M C M],
+			}.matches("mania"))
 		}
 	}
 }
