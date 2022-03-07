@@ -3,8 +3,9 @@ use wordle_solve::*;
 const ANSWERS: &str = include_str!("../answers.txt");
 
 fn main() {
+	let w = Wordle::new();
 	for answer in ANSWERS.lines() {
 		let guesser = algorithms::Naive::new();
-		Wordle::new().play(answer, guesser);
+		w.play(answer, guesser);
 	}
 }
