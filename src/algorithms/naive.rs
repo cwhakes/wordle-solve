@@ -9,7 +9,7 @@ impl Naive {
 }
 
 impl crate::Guesser for Naive {
-	fn guess(&mut self, history: &[crate::Guess]) -> String {
-		String::from("Naive")
+	fn guess(&mut self, _history: &[crate::Guess]) -> String {
+		String::from("guess")
 	}
 }

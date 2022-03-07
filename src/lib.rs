@@ -1,24 +1,42 @@
-use std::collections::BinaryHeap;
+use std::collections::{BTreeSet};
 
 pub mod algorithms {
 	mod naive;
 	pub use naive::Naive;
 }
 
-pub fn play<G: Guesser>(answer: &'static str, mut guesser: G) -> Option<u16> {
-	let mut history = Vec::new();
-	for n in 1..=u16::MAX {
-		let guess = guesser.guess(&history);
-		if guess == answer {
-			return Some(n);
+const DICTIONARY: &str = include_str!("../dictionary.txt");
+
+pub struct Wordle {
+	dictionary: BTreeSet<&'static str>,
+}
+
+impl Wordle {
+	pub fn new() -> Self {
+		Self {
+			dictionary: DICTIONARY
+				.lines()
+				.filter_map(|w| w.split_once(' ').map(|w| w.0))
+				.collect(),
 		}
-		let correctness = Correctness::check(answer, &guess);
-		history.push(Guess {
-			word: guess,
-			mask: correctness,
-		})
 	}
-	None
+
+	pub fn play<G: Guesser>(&self, answer: &'static str, mut guesser: G) -> Option<u8> {
+		let mut history = Vec::new();
+		for n in 1..=32 {
+			let guess = guesser.guess(&history);
+			debug_assert!(self.dictionary.contains(&*guess));
+			if guess == answer {
+				return Some(n);
+			}
+			let correctness = Correctness::check(answer, &guess);
+			history.push(Guess {
+				word: guess,
+				mask: correctness,
+			})
+		}
+		None
+	}
 }
 
 pub struct Guess {
@@ -67,9 +85,7 @@ impl Correctness {
 }
 
 pub trait Guesser {
-	fn guess(&mut self, history: &[Guess]) -> String {
-		String::default()
-	}
+	fn guess(&mut self, history: &[Guess]) -> String;
 }
 
 fn wordle_array(word: &str) -> Option<[char; 5]> {
@@ -83,22 +99,52 @@ fn wordle_array(word: &str) -> Option<[char; 5]> {
 	}
 	Some(array)
 }
+#[cfg(test)]
+macro_rules! guesser {
+    (|$history: ident| $impl:block) => {{
+        struct G;
+        impl crate::Guesser for G {
+            fn guess(&mut self, $history: &[Guess]) -> String {
+                $impl
+            }
+        }
+        G
+    }}
+}
 
 #[cfg(test)]
 mod tests {
-	use crate::Correctness;
+	use super::*;
+	mod game {
+		use super::{Guess,  Wordle};
+		#[test]
+		fn play1() {
+			let w = Wordle::new();
+            let guesser = guesser!(|_history| {String::from("right")});
+			assert_eq!(w.play("right", guesser), Some(1));
+		}
+        #[test]
+		fn play32() {
+			let w = Wordle::new();
+            let guesser = guesser!(|_history| {String::from("wrong")});
+			assert_eq!(w.play("right", guesser), None);
+		}
+	}
+	mod correctness {
+		use super::Correctness;
 
-	macro_rules! mask {
-        (C) => {Correctness::Correct};
-        (M) => {Correctness::Misplaced};
-        (W) => {Correctness::Wrong};
-        ($($c:tt)+) => {[
-            $(mask!($c)),+
-        ]}
-    }
+		macro_rules! mask {
+            (C) => {Correctness::Correct};
+            (M) => {Correctness::Misplaced};
+            (W) => {Correctness::Wrong};
+            ($($c:tt)+) => {[
+                $(mask!($c)),+
+            ]}
+        }
 
-	#[test]
-	fn test_correctness() {
-		assert_eq!(Correctness::check("aaabb", "abbab"), mask![C M W M C])
+		#[test]
+		fn test_correctness() {
+			assert_eq!(Correctness::check("aaabb", "abbab"), mask![C M W M C])
+		}
 	}
 }
