@@ -62,17 +62,17 @@ impl Guess {
 					} else {
 						used[i] = true;
 					}
-				}
+				},
 				Correctness::Misplaced => {
 					if g == w {
 						return false;
 					}
-				}
+				},
 				Correctness::Wrong => {
 					if g == w {
 						return false;
 					}
-				}
+				},
 			}
 		}
 		for ((g, m), u) in self.word.chars().zip(self.mask).zip(&mut used) {
