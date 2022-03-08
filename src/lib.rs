@@ -1,5 +1,7 @@
 use std::collections::BTreeSet;
 
+use itertools::iproduct;
+
 pub mod algorithms {
 	mod naive;
 	pub use naive::Naive;
@@ -24,7 +26,7 @@ impl Wordle {
 	pub fn play<G: Guesser>(&self, answer: &'static str, mut guesser: G) -> Option<u8> {
 		let mut history = Vec::new();
 		for n in 1..=32 {
-			let guess = guesser.guess(&history);
+			let guess = dbg!(guesser.guess(&history));
 			debug_assert!(self.dictionary.contains(&*guess));
 			if guess == answer {
 				return Some(n);
@@ -41,7 +43,7 @@ impl Wordle {
 
 #[derive(Debug)]
 pub struct Guess {
-	word: String,
+	word: &'static str,
 	mask: [Correctness; 5],
 }
 
@@ -123,10 +125,15 @@ impl Correctness {
 
 		correctness
 	}
+
+	pub fn permutations() -> impl Iterator<Item = [Self;5]> {
+		let x = [Self::Correct, Self::Misplaced, Self::Wrong];
+		iproduct!(x, x, x, x, x).map(|(a, b, c, d, e)| [a, b, c, d, e])
+	}
 }
 
 pub trait Guesser {
-	fn guess(&mut self, history: &[Guess]) -> String;
+	fn guess(&mut self, history: &[Guess]) -> &'static str;
 }
 
 fn wordle_array(word: &str) -> Option<[char; 5]> {
@@ -145,7 +152,7 @@ macro_rules! guesser {
 	(|$history: ident| $impl:block) => {{
 		struct G;
 		impl $crate::Guesser for G {
-			fn guess(&mut self, $history: &[Guess]) -> String {
+			fn guess(&mut self, $history: &[Guess]) -> &'static str {
 				$impl
 			}
 		}
@@ -172,13 +179,13 @@ mod tests {
 		#[test]
 		fn play1() {
 			let w = Wordle::new();
-			let guesser = guesser!(|_history| { String::from("right") });
+			let guesser = guesser!(|_history| { "right" });
 			assert_eq!(w.play("right", guesser), Some(1));
 		}
 		#[test]
 		fn play32() {
 			let w = Wordle::new();
-			let guesser = guesser!(|_history| { String::from("wrong") });
+			let guesser = guesser!(|_history| { "wrong" });
 			assert_eq!(w.play("right", guesser), None);
 		}
 	}
@@ -194,47 +201,48 @@ mod tests {
 	mod guess {
 		use super::Guess;
 
+		macro_rules! check {
+			($prev:literal [$($mask:tt)+] allows $next:literal) => {
+				assert!(Guess {
+					word: $prev,
+					mask: mask![$($mask )+],
+				}
+				.matches($next))
+			};
+			($prev:literal [$($mask:tt)+] disallows $next:literal) => {
+				assert!(!Guess {
+					word: $prev,
+					mask: mask![$($mask )+],
+				}
+				.matches($next))
+			};
+		}
+
+		#[test]
+		fn test_wrong_word() {
+			check!("right" [C C C C C] disallows "wrong");
+		}
+
 		#[test]
 		fn test_similar_word() {
-			assert!(Guess {
-				word: "crate".to_string(),
-				mask: mask![W C C C C],
-			}
-			.matches("grate"))
+			check!("crate" [W C C C C] allows "grate");
 		}
 
 		#[test]
 		fn test_disimilar_word() {
-			assert!(Guess {
-				word: "sugar".to_string(),
-				mask: mask![W W W M M],
-			}
-			.matches("hoard"))
+			check!("sugar" [W W W M M] allows "hoard");
 		}
 
 		#[test]
-		fn test_mania1() {
-			assert!(Guess {
-				word: "which".to_string(),
-				mask: mask![W W M W W],
-			}
-			.matches("mania"))
+		fn test_sheep() {
+			check!("baaaa" [W C M W W] allows "aaccc")
 		}
+
 		#[test]
-		fn test_mania2() {
-			assert!(Guess {
-				word: "first".to_string(),
-				mask: mask![W M W W W],
-			}
-			.matches("mania"))
-		}
-		#[test]
-		fn test_mania3() {
-			assert!(Guess {
-				word: "again".to_string(),
-				mask: mask![M W M C M],
-			}
-			.matches("mania"))
+		fn test_mania() {
+			check!("which" [W W M W W] allows "mania");
+			check!("first" [W M W W W] allows "mania");
+			check!("again" [M W M C M] allows "mania");
 		}
 	}
 }
