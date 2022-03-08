@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{Guess, Guesser, DICTIONARY, Correctness};
+use crate::{Correctness, Guess, Guesser, DICTIONARY};
 
 pub struct Naive {
 	remaining: BTreeMap<&'static str, u64>,
@@ -24,7 +24,6 @@ impl Naive {
 #[derive(Debug, Clone)]
 struct Candidate {
 	word: &'static str,
-	count: u64,
 	goodness: f64,
 }
 
@@ -38,40 +37,33 @@ impl Guesser for Naive {
 
 		let total: u64 = self.remaining.values().sum();
 		let mut best: Option<Candidate> = None;
-		for (&word, &count) in &self.remaining {
-			let total_goodness: f64 = Correctness::permutations().map(|mask| {
-				let words_left: u64 = self.remaining.iter()
-					.filter(|(w, _)| {
-						Guess {
-							word,
-							mask,
-						}.matches(w)
-					})
-					.map(|(_, c)| *c)
-					.sum();
-				let p_pattern = words_left as f64 / total as f64;
-				if p_pattern == 0.0 {
-					0.0
-				} else {
-					p_pattern * -(p_pattern.log2())
-				}
-			}).sum();
-
-			let goodness = total_goodness / (3.0f64.powi(5));
+		for word in self.remaining.keys() {
+			let goodness: f64 = Correctness::permutations()
+				.map(|mask| {
+					let words_left: u64 = self
+						.remaining
+						.iter()
+						.filter(|(w, _)| Guess { word, mask }.matches(w))
+						.map(|(_, c)| *c)
+						.sum();
+					let p_pattern = words_left as f64 / total as f64;
+					if p_pattern == 0.0 {
+						0.0
+					} else {
+						p_pattern * -(p_pattern.log2())
+					}
+				})
+				.sum();
 			if let &mut Some(ref mut best) = &mut best {
 				if goodness > best.goodness {
-					*best = Candidate {
-						word,
-						count,
-						goodness,
-					};
+					println!(
+						"{} is better than {} with goodness {}",
+						word, best.word, goodness
+					);
+					*best = Candidate { word, goodness };
 				}
 			} else {
-				best = Some(Candidate {
-					word,
-					count,
-					goodness,
-				});
+				best = Some(Candidate { word, goodness });
 			}
 		}
 		if best.is_none() {

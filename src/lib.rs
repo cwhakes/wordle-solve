@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::fmt;
 
 use itertools::iproduct;
 
@@ -26,16 +27,18 @@ impl Wordle {
 	pub fn play<G: Guesser>(&self, answer: &'static str, mut guesser: G) -> Option<u8> {
 		let mut history = Vec::new();
 		for n in 1..=32 {
-			let guess = dbg!(guesser.guess(&history));
+			let guess = guesser.guess(&history);
 			debug_assert!(self.dictionary.contains(&*guess));
 			if guess == answer {
 				return Some(n);
 			}
 			let correctness = Correctness::check(answer, &guess);
-			history.push(Guess {
+			let guess = Guess {
 				word: guess,
 				mask: correctness,
-			})
+			};
+			println!("Guessed: {}", guess);
+			history.push(guess);
 		}
 		None
 	}
@@ -69,21 +72,45 @@ impl Guess {
 				}
 			}
 		}
-		'outer: for ((g, m), u) in self.word.chars().zip(self.mask).zip(&mut used) {
-			if m == Correctness::Misplaced {
-				// inner loop
-				for w in word.chars() {
-					if !*u && w == g {
-						*u = true;
-						// Only contiue if something is found in inner loop
-						continue 'outer;
+		'outer: for (g, m) in self.word.chars().zip(self.mask) {
+			match m {
+				Correctness::Misplaced => {
+					// inner loop
+					for (w, u) in word.chars().zip(&mut used) {
+						if !*u && w == g {
+							*u = true;
+							// Only contiue if something is found in inner loop
+							continue 'outer;
+						}
 					}
-				}
-				return false;
+					return false;
+				},
+				Correctness::Wrong => {
+					for (w, u) in word.chars().zip(&mut used) {
+						if !*u && w == g {
+							return false;
+						}
+					}
+				},
+				_ => {},
 			}
 		}
 
 		true
+	}
+}
+
+impl fmt::Display for Guess {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{} [", self.word)?;
+		let mut iter = self.mask.iter();
+		if let Some(c) = iter.next() {
+			write!(f, "{}", c)?;
+		}
+		while let Some(c) = iter.next() {
+			write!(f, " {}", c)?;
+		}
+		write!(f, "]")
 	}
 }
 
@@ -126,9 +153,19 @@ impl Correctness {
 		correctness
 	}
 
-	pub fn permutations() -> impl Iterator<Item = [Self;5]> {
+	pub fn permutations() -> impl Iterator<Item = [Self; 5]> {
 		let x = [Self::Correct, Self::Misplaced, Self::Wrong];
 		iproduct!(x, x, x, x, x).map(|(a, b, c, d, e)| [a, b, c, d, e])
+	}
+}
+
+impl fmt::Display for Correctness {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match self {
+			Self::Correct => write!(f, "C"),
+			Self::Misplaced => write!(f, "M"),
+			Self::Wrong => write!(f, "W"),
+		}
 	}
 }
 
@@ -243,6 +280,11 @@ mod tests {
 			check!("which" [W W M W W] allows "mania");
 			check!("first" [W M W W W] allows "mania");
 			check!("again" [M W M C M] allows "mania");
+		}
+
+		#[test]
+		fn test_tares() {
+			check!("tares" [W W W W W] disallows "areae");
 		}
 	}
 }
