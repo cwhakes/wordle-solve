@@ -55,38 +55,29 @@ impl Guess {
 			.zip(self.mask)
 			.enumerate()
 		{
-			match m {
-				Correctness::Correct => {
-					if g != w {
-						return false;
-					} else {
-						used[i] = true;
-					}
-				},
-				Correctness::Misplaced => {
-					if g == w {
-						return false;
-					}
-				},
-				Correctness::Wrong => {
-					if g == w {
-						return false;
-					}
-				},
-			}
-		}
-		for ((g, m), u) in self.word.chars().zip(self.mask).zip(&mut used) {
-			if m == Correctness::Misplaced {
-				let mut found = false;
-				for w in word.chars() {
-					if !*u && w == g {
-						found = true;
-						*u = true;
-					}
+			if m == Correctness::Correct {
+				if g != w {
+					return false;
+				} else {
+					used[i] = true;
 				}
-				if !found {
+			} else {
+				if g == w {
 					return false;
 				}
+			}
+		}
+		'outer: for ((g, m), u) in self.word.chars().zip(self.mask).zip(&mut used) {
+			if m == Correctness::Misplaced {
+				// inner loop
+				for w in word.chars() {
+					if !*u && w == g {
+						*u = true;
+						// Only contiue if something is found in inner loop
+						continue 'outer;
+					}
+				}
+				return false;
 			}
 		}
 
@@ -153,7 +144,7 @@ fn wordle_array(word: &str) -> Option<[char; 5]> {
 macro_rules! guesser {
 	(|$history: ident| $impl:block) => {{
 		struct G;
-		impl crate::Guesser for G {
+		impl $crate::Guesser for G {
 			fn guess(&mut self, $history: &[Guess]) -> String {
 				$impl
 			}
@@ -163,17 +154,18 @@ macro_rules! guesser {
 }
 
 #[cfg(test)]
+macro_rules! mask {
+	(C) => {$crate::Correctness::Correct};
+	(M) => {$crate::Correctness::Misplaced};
+	(W) => {$crate::Correctness::Wrong};
+	($($c:tt)+) => {[
+		$(mask!($c)),+
+	]}
+}
+
+#[cfg(test)]
 mod tests {
 	use super::*;
-
-	macro_rules! mask {
-		(C) => {Correctness::Correct};
-		(M) => {Correctness::Misplaced};
-		(W) => {Correctness::Wrong};
-		($($c:tt)+) => {[
-			$(mask!($c)),+
-		]}
-	}
 
 	mod game {
 		use super::{Guess, Wordle};
@@ -200,7 +192,7 @@ mod tests {
 	}
 
 	mod guess {
-		use super::{Correctness, Guess};
+		use super::Guess;
 
 		#[test]
 		fn test_similar_word() {
