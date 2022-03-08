@@ -56,10 +56,6 @@ impl Guesser for Naive {
 				.sum();
 			if let &mut Some(ref mut best) = &mut best {
 				if goodness > best.goodness {
-					println!(
-						"{} is better than {} with goodness {}",
-						word, best.word, goodness
-					);
 					*best = Candidate { word, goodness };
 				}
 			} else {
