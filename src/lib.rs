@@ -1,12 +1,12 @@
-use std::collections::BTreeSet;
-use std::fmt;
-
-use itertools::iproduct;
-
 pub mod algorithms {
 	mod naive;
 	pub use naive::Naive;
 }
+
+use std::collections::BTreeSet;
+use std::fmt;
+
+use itertools::iproduct;
 
 const DICTIONARY: &str = include_str!("../dictionary.txt");
 

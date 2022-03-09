@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{Correctness, Guess, Guesser, DICTIONARY};
 
+#[derive(Clone)]
 pub struct Naive {
 	remaining: BTreeMap<&'static str, u64>,
 }

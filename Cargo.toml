@@ -9,4 +9,5 @@ edition = "2021"
 debug = true
 
 [dependencies]
+clap = { version = "3", features = ["derive"] }
 itertools = "0.10"
