@@ -4,20 +4,24 @@ use crate::{Correctness, Guess, Guesser, DICTIONARY};
 
 #[derive(Clone)]
 pub struct Naive {
+	dictionary: BTreeMap<&'static str, u64>,
 	remaining: BTreeMap<&'static str, u64>,
 }
 
 impl Naive {
 	pub fn new() -> Naive {
+		let dictionary: BTreeMap<&'static str, u64> = DICTIONARY
+			.lines()
+			.map(|line| {
+				let (w, n) = line.split_once(' ').expect("expecting format `word ###`");
+				let n = n.parse().expect("expecting a number");
+				(w, n)
+			})
+			.collect();
+
 		Naive {
-			remaining: DICTIONARY
-				.lines()
-				.map(|line| {
-					let (w, n) = line.split_once(' ').expect("expecting format `word ###`");
-					let n = n.parse().expect("expecting a number");
-					(w, n)
-				})
-				.collect(),
+			dictionary: dictionary.clone(),
+			remaining: dictionary,
 		}
 	}
 }
@@ -68,5 +72,9 @@ impl Guesser for Naive {
 		}
 
 		best.expect("Should always find a word").word
+	}
+
+	fn reset(&mut self) {
+		self.remaining = self.dictionary.clone();
 	}
 }

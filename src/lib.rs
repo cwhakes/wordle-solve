@@ -168,6 +168,17 @@ impl fmt::Display for Correctness {
 
 pub trait Guesser {
 	fn guess(&mut self, history: &[Guess]) -> &'static str;
+	fn reset(&mut self);
+}
+
+impl<'a, G: Guesser + ?Sized> Guesser for &'a mut G {
+	fn guess(&mut self, history: &[Guess]) -> &'static str {
+		(&mut **self).guess(history)
+	}
+
+	fn reset(&mut self) {
+		(&mut **self).reset()
+	}
 }
 
 fn wordle_array(word: &str) -> Option<[char; 5]> {
@@ -189,6 +200,7 @@ macro_rules! guesser {
 			fn guess(&mut self, $history: &[Guess]) -> &'static str {
 				$impl
 			}
+			fn reset(&mut self) {}
 		}
 		G
 	}};

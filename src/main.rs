@@ -8,8 +8,8 @@ const ANSWERS: &str = include_str!("../answers.txt");
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-	#[clap(short, long)]
-	guesser: Option<String>,
+	#[clap(short, long, default_value = "naive")]
+	guesser: String,
 	#[clap(subcommand)]
 	command: Option<Command>,
 }
@@ -28,20 +28,28 @@ fn main() {
 
 	dbg!(&args.guesser);
 	match &args.command.unwrap_or(Command::List { limit: None }) {
-		Command::List { limit } => list(*limit),
+		Command::List { limit } => list(*limit, &args.guesser),
 	}
 }
 
-fn list(limit: Option<usize>) {
+fn list(limit: Option<usize>, guesser: &str) {
 	let w = Wordle::new();
-	let guesser = algorithm::Naive::new();
+
+	let mut guesser = if let Some(guesser) = algorithm::select(guesser) {
+		guesser
+	} else {
+		eprintln!("Unknown guesser `{}`", guesser);
+		return;
+	};
+
 	for answer in ANSWERS.lines().take(limit.unwrap_or(usize::MAX)) {
 		println!("{}:", answer);
-		let count = w.play(answer, guesser.clone());
+		let count = w.play(answer, &mut *guesser);
 		if let Some(count) = count {
 			println!("Guessed {} in {} tries", answer, count);
 		} else {
 			println!("Failed to guess {}", answer);
 		}
+		guesser.reset();
 	}
 }
