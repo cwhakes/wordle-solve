@@ -8,8 +8,8 @@ pub struct Naive {
 	remaining: BTreeMap<&'static str, u64>,
 }
 
-impl Naive {
-	pub fn new() -> Naive {
+impl Default for Naive {
+	fn default() -> Self {
 		let dictionary: BTreeMap<&'static str, u64> = DICTIONARY
 			.lines()
 			.map(|line| {
@@ -19,7 +19,7 @@ impl Naive {
 			})
 			.collect();
 
-		Naive {
+		Self {
 			dictionary: dictionary.clone(),
 			remaining: dictionary,
 		}
@@ -35,7 +35,7 @@ struct Candidate {
 impl Guesser for Naive {
 	fn guess(&mut self, history: &[Guess]) -> &'static str {
 		if let Some(last) = history.last() {
-			self.remaining.retain(|w, _| last.matches(w))
+			self.remaining.retain(|w, _| last.matches(w));
 		} else {
 			return "tares";
 		}

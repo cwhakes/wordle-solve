@@ -33,7 +33,7 @@ fn main() {
 }
 
 fn list(limit: Option<usize>, guesser: &str) {
-	let w = Wordle::new();
+	let w = Wordle::default();
 
 	let mut guesser = if let Some(guesser) = algorithm::select(guesser) {
 		guesser

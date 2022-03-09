@@ -11,8 +11,8 @@ pub struct Wordle {
 	dictionary: BTreeSet<&'static str>,
 }
 
-impl Wordle {
-	pub fn new() -> Self {
+impl Default for Wordle {
+	fn default() -> Self {
 		Self {
 			dictionary: DICTIONARY
 				.lines()
@@ -20,7 +20,9 @@ impl Wordle {
 				.collect(),
 		}
 	}
+}
 
+impl Wordle {
 	pub fn play<G: Guesser>(&self, answer: &'static str, mut guesser: G) -> Option<u8> {
 		let mut history = Vec::new();
 		for n in 1..=32 {
@@ -29,7 +31,7 @@ impl Wordle {
 			if guess == answer {
 				return Some(n);
 			}
-			let correctness = Correctness::check(answer, &guess);
+			let correctness = Correctness::check(answer, guess);
 			let guess = Guess {
 				word: guess,
 				mask: correctness,
@@ -57,16 +59,10 @@ impl Guess {
 			.zip(self.mask)
 			.enumerate()
 		{
-			if m == Correctness::Correct {
-				if g != w {
-					return false;
-				} else {
-					used[i] = true;
-				}
-			} else {
-				if g == w {
-					return false;
-				}
+			match (m == Correctness::Correct, g == w) {
+				(true, true) => used[i] = true,
+				(false, false) => { /* do nothing */ },
+				_ => return false,
 			}
 		}
 		'outer: for (g, m) in self.word.chars().zip(self.mask) {
@@ -104,7 +100,7 @@ impl fmt::Display for Guess {
 		if let Some(c) = iter.next() {
 			write!(f, "{}", c)?;
 		}
-		while let Some(c) = iter.next() {
+		for c in iter {
 			write!(f, " {}", c)?;
 		}
 		write!(f, "]")
@@ -177,7 +173,7 @@ impl<'a, G: Guesser + ?Sized> Guesser for &'a mut G {
 	}
 
 	fn reset(&mut self) {
-		(&mut **self).reset()
+		(&mut **self).reset();
 	}
 }
 
@@ -188,7 +184,7 @@ fn wordle_array(word: &str) -> Option<[char; 5]> {
 
 	let mut array = [char::default(); 5];
 	for (n, c) in word.chars().enumerate() {
-		array[n] = c
+		array[n] = c;
 	}
 	Some(array)
 }
@@ -224,13 +220,13 @@ mod tests {
 		use super::{Guess, Wordle};
 		#[test]
 		fn play1() {
-			let w = Wordle::new();
+			let w = Wordle::default();
 			let guesser = guesser!(|_history| { "right" });
 			assert_eq!(w.play("right", guesser), Some(1));
 		}
 		#[test]
 		fn play32() {
-			let w = Wordle::new();
+			let w = Wordle::default();
 			let guesser = guesser!(|_history| { "wrong" });
 			assert_eq!(w.play("right", guesser), None);
 		}
