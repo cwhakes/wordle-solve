@@ -34,7 +34,7 @@ fn main() {
 
 fn list(limit: Option<usize>) {
 	let w = Wordle::new();
-	let guesser = algorithms::Naive::new();
+	let guesser = algorithm::Naive::new();
 	for answer in ANSWERS.lines().take(limit.unwrap_or(usize::MAX)) {
 		println!("{}:", answer);
 		let count = w.play(answer, guesser.clone());

@@ -1,7 +1,4 @@
-pub mod algorithms {
-	mod naive;
-	pub use naive::Naive;
-}
+pub mod algorithm;
 
 use std::collections::BTreeSet;
 use std::fmt;
