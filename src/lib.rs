@@ -45,8 +45,8 @@ impl Wordle {
 
 #[derive(Debug)]
 pub struct Guess {
-	word: &'static str,
-	mask: [Correctness; 5],
+	pub word: &'static str,
+	pub mask: [Correctness; 5],
 }
 
 impl Guess {
@@ -115,6 +115,22 @@ pub enum Correctness {
 }
 
 impl Correctness {
+	pub fn new(s: &str) -> [Self; 5] {
+		let mut out = [Self::Wrong; 5];
+
+		s.chars()
+			.filter_map(|c| match c {
+				'c' | 'C' => Some(Self::Correct),
+				'm' | 'M' => Some(Self::Misplaced),
+				'w' | 'W' => Some(Self::Wrong),
+				_ => None,
+			})
+			.zip(&mut out)
+			.for_each(|(c, o)| *o = c);
+
+		out
+	}
+
 	fn check(answer: &str, guess: &str) -> [Self; 5] {
 		let mut correctness = [Self::Wrong; 5];
 		let answer = wordle_array(answer).unwrap();
