@@ -59,6 +59,8 @@ impl Guesser for Naive {
 					}
 				})
 				.sum();
+			//.filter(|&x| x > f64::EPSILON)
+			//.min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap_or(f64::INFINITY);
 			if let &mut Some(ref mut best) = &mut best {
 				if goodness > best.goodness {
 					*best = Candidate { word, goodness };

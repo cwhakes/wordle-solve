@@ -54,6 +54,7 @@ fn list(limit: Option<usize>, guesser: &str) {
 			println!("Guessed {} in {} tries", answer, count);
 		} else {
 			println!("Failed to guess {}", answer);
+			panic!();
 		}
 		guesser.reset();
 	}

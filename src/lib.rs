@@ -25,7 +25,7 @@ impl Default for Wordle {
 impl Wordle {
 	pub fn play<G: Guesser>(&self, answer: &'static str, mut guesser: G) -> Option<u8> {
 		let mut history = Vec::new();
-		for n in 1..=32 {
+		for n in 1..=6 {
 			let guess = guesser.guess(&history);
 			debug_assert!(self.dictionary.contains(&*guess));
 			if guess == answer {
@@ -306,6 +306,11 @@ mod tests {
 		#[test]
 		fn test_tares() {
 			check!("tares" [W W W W W] disallows "areae");
+		}
+
+		#[test]
+		fn test_bumph() {
+			check!("bumph" [W C C C C] allows "humph");
 		}
 	}
 }
