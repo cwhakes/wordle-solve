@@ -1,6 +1,5 @@
+use clap::{ArgEnum, Parser, Subcommand};
 use std::io::{stdin, stdout, Write};
-
-use clap::{Parser, Subcommand};
 
 use wordle_solve::*;
 
@@ -10,8 +9,8 @@ const ANSWERS: &str = include_str!("../answers.txt");
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-	#[clap(short, long, default_value = "naive")]
-	guesser: String,
+	#[clap(short, long, arg_enum, default_value_t = GuesserArg::Naive)]
+	guesser: GuesserArg,
 	#[clap(subcommand)]
 	command: Option<Command>,
 }
@@ -27,29 +26,35 @@ enum Command {
 	Solve,
 }
 
+#[derive(ArgEnum, Debug, Clone)]
+enum GuesserArg {
+	Naive,
+}
+
 fn main() {
 	let args = Args::parse();
 
 	dbg!(&args.guesser);
 	match &args.command.unwrap_or(Command::List { limit: None }) {
-		Command::List { limit } => list(*limit, &args.guesser),
-		Command::Solve => solve(&args.guesser),
+		Command::List { limit } => match &args.guesser {
+			GuesserArg::Naive => list(*limit, algorithm::Naive::default),
+		},
+		Command::Solve => match &args.guesser {
+			GuesserArg::Naive => solve(algorithm::Naive::default),
+		},
 	}
 }
 
-fn list(limit: Option<usize>, guesser: &str) {
+fn list<G>(limit: Option<usize>, guesser: impl Fn() -> G)
+where
+	G: Guesser,
+{
 	let w = Wordle::default();
-
-	let mut guesser = if let Some(guesser) = algorithm::select(guesser) {
-		guesser
-	} else {
-		eprintln!("Unknown guesser `{}`", guesser);
-		return;
-	};
+	let mut guesser = guesser();
 
 	for answer in ANSWERS.lines().take(limit.unwrap_or(usize::MAX)) {
 		println!("{}:", answer);
-		let count = w.play(answer, &mut *guesser);
+		let count = w.play(answer, &mut guesser);
 		if let Some(count) = count {
 			println!("Guessed {} in {} tries", answer, count);
 		} else {
@@ -60,13 +65,11 @@ fn list(limit: Option<usize>, guesser: &str) {
 	}
 }
 
-fn solve(guesser: &str) {
-	let mut guesser = if let Some(guesser) = algorithm::select(guesser) {
-		guesser
-	} else {
-		eprintln!("Unknown guesser `{}`", guesser);
-		return;
-	};
+fn solve<G>(guesser: impl Fn() -> G)
+where
+	G: Guesser,
+{
+	let mut guesser = guesser();
 
 	let mut history = Vec::new();
 	for _ in 1..=6 {
