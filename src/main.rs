@@ -1,5 +1,8 @@
 use clap::{ArgEnum, Parser, Subcommand};
-use std::io::{stdin, stdout, Write};
+use std::{
+	borrow::Cow,
+	io::{stdin, stdout, Write},
+};
 
 use wordle_solve::*;
 
@@ -20,7 +23,7 @@ enum Command {
 	/// Solve wordles from list in `answers.txt`
 	List {
 		#[clap(short, long)]
-		limit: Option<usize>,
+		max: Option<usize>,
 	},
 	/// Give ignorable suggestions for daily wordle
 	Cheat,
@@ -35,9 +38,9 @@ fn main() {
 	let args = Args::parse();
 
 	dbg!(&args.guesser);
-	match &args.command.unwrap_or(Command::List { limit: None }) {
-		Command::List { limit } => match &args.guesser {
-			GuesserArg::Naive => list(*limit, algorithm::Naive::default),
+	match &args.command.unwrap_or(Command::List { max: None }) {
+		Command::List { max } => match &args.guesser {
+			GuesserArg::Naive => list(*max, algorithm::Naive::default),
 		},
 		Command::Cheat => match &args.guesser {
 			&GuesserArg::Naive => cheat(algorithm::Naive::default),
@@ -45,14 +48,14 @@ fn main() {
 	}
 }
 
-fn list<G>(limit: Option<usize>, guesser: impl Fn() -> G)
+fn list<G>(max: Option<usize>, guesser: impl Fn() -> G)
 where
 	G: Guesser,
 {
 	let w = Wordle::default();
 	let mut guesser = guesser();
 
-	for answer in ANSWERS.lines().take(limit.unwrap_or(usize::MAX)) {
+	for answer in ANSWERS.lines().take(max.unwrap_or(usize::MAX)) {
 		println!("{}:", answer);
 		let count = w.play(answer, &mut guesser);
 		if let Some(count) = count {
@@ -80,7 +83,7 @@ where
 		stdout().flush().unwrap();
 		let mut buf = String::new();
 		stdin().read_line(&mut buf).unwrap();
-		let guess = buf.into();
+		let guess = Cow::Owned(buf);
 
 		print!("Correctness: ");
 		stdout().flush().unwrap();

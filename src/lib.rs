@@ -266,14 +266,14 @@ mod tests {
 		macro_rules! check {
 			($prev:literal [$($mask:tt)+] allows $next:literal) => {
 				assert!(Guess {
-					word: $prev.into(),
+					word: std::borrow::Cow::Borrowed($prev),
 					mask: mask![$($mask )+],
 				}
 				.matches($next))
 			};
 			($prev:literal [$($mask:tt)+] disallows $next:literal) => {
 				assert!(!Guess {
-					word: $prev.into(),
+					word: std::borrow::Cow::Borrowed($prev),
 					mask: mask![$($mask )+],
 				}
 				.matches($next))

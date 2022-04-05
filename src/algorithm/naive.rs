@@ -50,7 +50,7 @@ impl Guesser for Naive {
 						.iter()
 						.filter(|(w, _)| {
 							Guess {
-								word: Cow::from(*word),
+								word: Cow::Borrowed(*word),
 								mask,
 							}
 							.matches(w)
