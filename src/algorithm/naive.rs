@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{borrow::Cow, collections::BTreeMap};
 
 use crate::{Correctness, Guess, Guesser, DICTIONARY};
 
@@ -37,7 +37,7 @@ impl Guesser for Naive {
 		if let Some(last) = history.last() {
 			self.remaining.retain(|w, _| last.matches(w));
 		} else {
-			return "tares";
+			return "sugar";
 		}
 
 		let total: u64 = self.remaining.values().sum();
@@ -48,7 +48,13 @@ impl Guesser for Naive {
 					let words_left: u64 = self
 						.remaining
 						.iter()
-						.filter(|(w, _)| Guess { word, mask }.matches(w))
+						.filter(|(w, _)| {
+							Guess {
+								word: Cow::from(*word),
+								mask,
+							}
+							.matches(w)
+						})
 						.map(|(_, c)| *c)
 						.sum();
 					let p_pattern = words_left as f64 / total as f64;

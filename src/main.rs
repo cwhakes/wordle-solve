@@ -22,8 +22,8 @@ enum Command {
 		#[clap(short, long)]
 		limit: Option<usize>,
 	},
-	/// Give suggestions for daily wordle
-	Solve,
+	/// Give ignorable suggestions for daily wordle
+	Cheat,
 }
 
 #[derive(ArgEnum, Debug, Clone)]
@@ -39,8 +39,8 @@ fn main() {
 		Command::List { limit } => match &args.guesser {
 			GuesserArg::Naive => list(*limit, algorithm::Naive::default),
 		},
-		Command::Solve => match &args.guesser {
-			GuesserArg::Naive => solve(algorithm::Naive::default),
+		Command::Cheat => match &args.guesser {
+			&GuesserArg::Naive => cheat(algorithm::Naive::default),
 		},
 	}
 }
@@ -65,16 +65,22 @@ where
 	}
 }
 
-fn solve<G>(guesser: impl Fn() -> G)
+fn cheat<G>(guesser: impl Fn() -> G)
 where
 	G: Guesser,
 {
 	let mut guesser = guesser();
-
 	let mut history = Vec::new();
 	for _ in 1..=6 {
-		let guess = guesser.guess(&history);
-		println!("Guess: {}", guess);
+		println!();
+		let reccomendation = guesser.guess(&history);
+		println!("Reccomendation: {}", reccomendation);
+
+		print!("      Guess: ");
+		stdout().flush().unwrap();
+		let mut buf = String::new();
+		stdin().read_line(&mut buf).unwrap();
+		let guess = buf.into();
 
 		print!("Correctness: ");
 		stdout().flush().unwrap();

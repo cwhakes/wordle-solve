@@ -1,5 +1,9 @@
-pub mod algorithm;
+pub mod algorithm {
+	mod naive;
+	pub use naive::Naive;
+}
 
+use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::fmt;
 
@@ -33,7 +37,7 @@ impl Wordle {
 			}
 			let correctness = Correctness::check(answer, guess);
 			let guess = Guess {
-				word: guess,
+				word: guess.into(),
 				mask: correctness,
 			};
 			println!("Guessed: {}", guess);
@@ -45,7 +49,7 @@ impl Wordle {
 
 #[derive(Debug)]
 pub struct Guess {
-	pub word: &'static str,
+	pub word: Cow<'static, str>,
 	pub mask: [Correctness; 5],
 }
 
@@ -262,14 +266,14 @@ mod tests {
 		macro_rules! check {
 			($prev:literal [$($mask:tt)+] allows $next:literal) => {
 				assert!(Guess {
-					word: $prev,
+					word: $prev.into(),
 					mask: mask![$($mask )+],
 				}
 				.matches($next))
 			};
 			($prev:literal [$($mask:tt)+] disallows $next:literal) => {
 				assert!(!Guess {
-					word: $prev,
+					word: $prev.into(),
 					mask: mask![$($mask )+],
 				}
 				.matches($next))
