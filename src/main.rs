@@ -1,8 +1,5 @@
 use clap::{ArgEnum, Parser, Subcommand};
-use std::{
-	borrow::Cow,
-	io::{stdin, stdout, Write},
-};
+use std::io::{stdin, stdout, Write};
 
 use wordle_solve::*;
 
@@ -83,7 +80,7 @@ where
 		stdout().flush().unwrap();
 		let mut buf = String::new();
 		stdin().read_line(&mut buf).unwrap();
-		let guess = Cow::Owned(buf);
+		let guess = buf;
 
 		print!("Correctness: ");
 		stdout().flush().unwrap();
@@ -96,10 +93,7 @@ where
 			return;
 		}
 
-		let guess = Guess {
-			word: guess,
-			mask: correctness,
-		};
+		let guess = Guess::new(&guess, correctness);
 		history.push(guess);
 	}
 }

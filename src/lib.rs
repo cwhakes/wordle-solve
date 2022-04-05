@@ -3,7 +3,6 @@ pub mod algorithm {
 	pub use naive::Naive;
 }
 
-use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::fmt;
 
@@ -36,10 +35,7 @@ impl Wordle {
 				return Some(n);
 			}
 			let correctness = Correctness::check(answer, guess);
-			let guess = Guess {
-				word: guess.into(),
-				mask: correctness,
-			};
+			let guess = Guess::new(guess, correctness);
 			println!("Guessed: {}", guess);
 			history.push(guess);
 		}
@@ -49,31 +45,36 @@ impl Wordle {
 
 #[derive(Debug)]
 pub struct Guess {
-	pub word: Cow<'static, str>,
+	pub word: [u8; 5],
 	pub mask: [Correctness; 5],
 }
 
 impl Guess {
+	pub fn new(word: &str, mask: [Correctness; 5]) -> Self {
+		let word: &[u8] = word.as_bytes();
+		assert_eq!(5, word.len());
+		Self {
+			word: <[u8; 5]>::try_from(word).unwrap(),
+			mask,
+		}
+	}
+
 	fn matches(&self, word: &str) -> bool {
+		let word = word.as_bytes();
+
 		let mut used = [false; 5];
-		for (i, ((g, w), m)) in self
-			.word
-			.chars()
-			.zip(word.chars())
-			.zip(self.mask)
-			.enumerate()
-		{
+		for (i, ((g, w), m)) in self.word.iter().zip(word).zip(self.mask).enumerate() {
 			match (m == Correctness::Correct, g == w) {
 				(true, true) => used[i] = true,
 				(false, false) => { /* do nothing */ },
 				_ => return false,
 			}
 		}
-		'outer: for (g, m) in self.word.chars().zip(self.mask) {
+		'outer: for (g, m) in self.word.iter().zip(self.mask) {
 			match m {
 				Correctness::Misplaced => {
 					// inner loop
-					for (w, u) in word.chars().zip(&mut used) {
+					for (w, u) in word.iter().zip(&mut used) {
 						if !*u && w == g {
 							*u = true;
 							// Only contiue if something is found in inner loop
@@ -83,7 +84,7 @@ impl Guess {
 					return false;
 				},
 				Correctness::Wrong => {
-					for (w, u) in word.chars().zip(&mut used) {
+					for (w, u) in word.iter().zip(&mut used) {
 						if !*u && w == g {
 							return false;
 						}
@@ -99,7 +100,7 @@ impl Guess {
 
 impl fmt::Display for Guess {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{} [", self.word)?;
+		write!(f, "{} [", std::str::from_utf8(&self.word).unwrap())?;
 		let mut iter = self.mask.iter();
 		if let Some(c) = iter.next() {
 			write!(f, "{}", c)?;
@@ -265,18 +266,10 @@ mod tests {
 
 		macro_rules! check {
 			($prev:literal [$($mask:tt)+] allows $next:literal) => {
-				assert!(Guess {
-					word: std::borrow::Cow::Borrowed($prev),
-					mask: mask![$($mask )+],
-				}
-				.matches($next))
+				assert!(Guess::new($prev, mask![$($mask )+]).matches($next))
 			};
 			($prev:literal [$($mask:tt)+] disallows $next:literal) => {
-				assert!(!Guess {
-					word: std::borrow::Cow::Borrowed($prev),
-					mask: mask![$($mask )+],
-				}
-				.matches($next))
+				assert!(!Guess::new($prev, mask![$($mask )+]).matches($next))
 			};
 		}
 
