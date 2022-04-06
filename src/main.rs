@@ -34,6 +34,7 @@ impl Default for Command {
 
 #[derive(ArgEnum, Debug, Clone)]
 enum GuesserArg {
+	Minimax,
 	Naive,
 }
 
@@ -43,9 +44,11 @@ fn main() {
 	dbg!(&args.guesser);
 	match &args.command.unwrap_or_default() {
 		Command::List { max } => match &args.guesser {
+			GuesserArg::Minimax => list(*max, algorithm::Minimax::default),
 			GuesserArg::Naive => list(*max, algorithm::Naive::default),
 		},
 		Command::Cheat => match &args.guesser {
+			&GuesserArg::Minimax => cheat(algorithm::Minimax::default),
 			&GuesserArg::Naive => cheat(algorithm::Naive::default),
 		},
 	}

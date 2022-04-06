@@ -1,4 +1,7 @@
 pub mod algorithm {
+	mod minimax;
+	pub use minimax::Minimax;
+
 	mod naive;
 	pub use naive::Naive;
 }

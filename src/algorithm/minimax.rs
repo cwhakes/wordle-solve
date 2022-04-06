@@ -3,12 +3,12 @@ use std::collections::BTreeMap;
 use crate::{Correctness, Guess, Guesser, DICTIONARY};
 
 #[derive(Clone)]
-pub struct Naive {
+pub struct Minimax {
 	dictionary: BTreeMap<&'static str, f64>,
 	remaining: BTreeMap<&'static str, f64>,
 }
 
-impl Default for Naive {
+impl Default for Minimax {
 	fn default() -> Self {
 		let dictionary: BTreeMap<&'static str, f64> = DICTIONARY
 			.lines()
@@ -34,12 +34,12 @@ struct Candidate {
 	goodness: f64,
 }
 
-impl Guesser for Naive {
+impl Guesser for Minimax {
 	fn guess(&mut self, history: &[Guess]) -> &'static str {
 		if let Some(last) = history.last() {
 			self.remaining.retain(|w, _| last.matches(w));
 		} else {
-			return "tares";
+			return "lasso";
 		}
 
 		let total: f64 = self.remaining.values().sum();
@@ -60,8 +60,10 @@ impl Guesser for Naive {
 						p_pattern * -(p_pattern.log2())
 					}
 				})
-				.sum();
-			
+				.filter(|&x| x > f64::EPSILON)
+				.min_by(|x, y| x.partial_cmp(y).unwrap())
+				.unwrap_or(f64::INFINITY);
+
 			if let &mut Some(ref mut best) = &mut best {
 				if goodness > best.goodness {
 					*best = Candidate { word, goodness };
