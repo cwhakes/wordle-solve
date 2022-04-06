@@ -63,7 +63,8 @@ impl Guess {
 		let word = word.as_bytes();
 
 		let mut used = [false; 5];
-		for (i, ((g, w), m)) in self.word.iter().zip(word).zip(self.mask).enumerate() {
+		for i in 0..5 {
+			let (g, w, m) = (self.word[i], word[i], self.mask[i]);
 			match (m == Correctness::Correct, g == w) {
 				(true, true) => used[i] = true,
 				(false, false) => { /* do nothing */ },
