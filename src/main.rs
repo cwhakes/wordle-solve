@@ -75,6 +75,7 @@ fn cheat<G>(guesser: impl Fn() -> G)
 where
 	G: Guesser,
 {
+	let w = Wordle::default();
 	let mut guesser = guesser();
 	let mut history = Vec::new();
 	for _ in 1..=6 {
@@ -82,19 +83,34 @@ where
 		let reccomendation = guesser.guess(&history);
 		println!("Reccomendation: {}", reccomendation);
 
-		print!("      Guess: ");
-		stdout().flush().unwrap();
 		let mut buf = String::new();
-		stdin().read_line(&mut buf).unwrap();
-		let guess = buf.trim();
+		let guess = loop {
+			print!("      Guess: ");
+			stdout().flush().unwrap();
+			stdin().read_line(&mut buf).unwrap();
 
-		print!("Correctness: ");
-		stdout().flush().unwrap();
+			if w.dictionary.contains(buf.trim()) {
+				break buf.trim();
+			} else {
+				println!("Guess not in dictionary");
+				buf.clear();
+			}
+		};
+
 		let mut buf = String::new();
-		stdin().read_line(&mut buf).unwrap();
-		let correctness = Correctness::new(buf.trim());
+		let correctness = loop {
+			print!("Correctness: ");
+			stdout().flush().unwrap();
+			stdin().read_line(&mut buf).unwrap();
+			if let Some(c) = Correctness::new(buf.trim()) {
+				break c;
+			} else {
+				println!("Invalid correctness mask");
+				buf.clear();
+			}
+		};
 
-		if correctness == Correctness::new("CCCCC") {
+		if correctness == Correctness::new("CCCCC").unwrap() {
 			println!("You win!!");
 			return;
 		}

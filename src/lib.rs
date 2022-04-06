@@ -6,12 +6,12 @@ pub mod algorithm {
 use std::collections::BTreeSet;
 use std::fmt;
 
-use itertools::iproduct;
+use itertools::{iproduct, Itertools};
 
 const DICTIONARY: &str = include_str!("../dictionary.txt");
 
 pub struct Wordle {
-	dictionary: BTreeSet<&'static str>,
+	pub dictionary: BTreeSet<&'static str>,
 }
 
 impl Default for Wordle {
@@ -121,9 +121,7 @@ pub enum Correctness {
 }
 
 impl Correctness {
-	pub fn new(s: &str) -> [Self; 5] {
-		let mut out = [Self::Wrong; 5];
-
+	pub fn new(s: &str) -> Option<[Self; 5]> {
 		s.chars()
 			.filter_map(|c| match c {
 				'c' | 'C' => Some(Self::Correct),
@@ -131,10 +129,8 @@ impl Correctness {
 				'w' | 'W' => Some(Self::Wrong),
 				_ => None,
 			})
-			.zip(&mut out)
-			.for_each(|(c, o)| *o = c);
-
-		out
+			.collect_tuple()
+			.map(|(a, b, c, d, e)| [a, b, c, d, e])
 	}
 
 	fn check(answer: impl AsRef<[u8]>, guess: impl AsRef<[u8]>) -> [Self; 5] {
