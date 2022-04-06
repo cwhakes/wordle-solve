@@ -80,20 +80,20 @@ where
 		stdout().flush().unwrap();
 		let mut buf = String::new();
 		stdin().read_line(&mut buf).unwrap();
-		let guess = buf;
+		let guess = buf.trim();
 
 		print!("Correctness: ");
 		stdout().flush().unwrap();
 		let mut buf = String::new();
 		stdin().read_line(&mut buf).unwrap();
-		let correctness = Correctness::new(&buf);
+		let correctness = Correctness::new(buf.trim());
 
 		if correctness == Correctness::new("CCCCC") {
 			println!("You win!!");
 			return;
 		}
 
-		let guess = Guess::new(&guess, correctness);
+		let guess = Guess::new(guess, correctness);
 		history.push(guess);
 	}
 }

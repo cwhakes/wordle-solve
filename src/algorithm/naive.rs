@@ -4,18 +4,20 @@ use crate::{Correctness, Guess, Guesser, DICTIONARY};
 
 #[derive(Clone)]
 pub struct Naive {
-	dictionary: BTreeMap<&'static str, u64>,
-	remaining: BTreeMap<&'static str, u64>,
+	dictionary: BTreeMap<&'static str, f64>,
+	remaining: BTreeMap<&'static str, f64>,
 }
 
 impl Default for Naive {
 	fn default() -> Self {
-		let dictionary: BTreeMap<&'static str, u64> = DICTIONARY
+		let dictionary: BTreeMap<&'static str, f64> = DICTIONARY
 			.lines()
 			.map(|line| {
 				let (w, n) = line.split_once(' ').expect("expecting format `word ###`");
-				let n = n.parse().expect("expecting a number");
-				(w, n)
+				let f: f64 = n.parse().expect("expecting a number");
+				// Apply sigmoid
+				let f = f / (f + 10000.0);
+				(w, f)
 			})
 			.collect();
 
@@ -40,18 +42,18 @@ impl Guesser for Naive {
 			return "sugar";
 		}
 
-		let total: u64 = self.remaining.values().sum();
+		let total: f64 = self.remaining.values().sum();
 		let mut best: Option<Candidate> = None;
 		for word in self.remaining.keys() {
 			let goodness: f64 = Correctness::permutations()
 				.map(|mask| {
-					let words_left: u64 = self
+					let words_left: f64 = self
 						.remaining
 						.iter()
 						.filter(|(w, _)| Guess::new(word, mask).matches(w))
 						.map(|(_, c)| *c)
 						.sum();
-					let p_pattern = words_left as f64 / total as f64;
+					let p_pattern = words_left / total;
 					if p_pattern == 0.0 {
 						0.0
 					} else {
@@ -59,8 +61,8 @@ impl Guesser for Naive {
 					}
 				})
 				.sum();
-			//.filter(|&x| x > f64::EPSILON)
-			//.min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap_or(f64::INFINITY);
+			// .filter(|&x| x > f64::EPSILON)
+			// .min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap_or(f64::INFINITY);
 			if let &mut Some(ref mut best) = &mut best {
 				if goodness > best.goodness {
 					*best = Candidate { word, goodness };
