@@ -26,6 +26,12 @@ enum Command {
 	Cheat,
 }
 
+impl Default for Command {
+	fn default() -> Self {
+		Self::Cheat
+	}
+}
+
 #[derive(ArgEnum, Debug, Clone)]
 enum GuesserArg {
 	Naive,
@@ -35,7 +41,7 @@ fn main() {
 	let args = Args::parse();
 
 	dbg!(&args.guesser);
-	match &args.command.unwrap_or(Command::List { max: None }) {
+	match &args.command.unwrap_or_default() {
 		Command::List { max } => match &args.guesser {
 			GuesserArg::Naive => list(*max, algorithm::Naive::default),
 		},
