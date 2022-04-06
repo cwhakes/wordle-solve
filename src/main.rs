@@ -88,9 +88,13 @@ where
 			print!("      Guess: ");
 			stdout().flush().unwrap();
 			stdin().read_line(&mut buf).unwrap();
+			let guess = buf.trim();
 
-			if w.dictionary.contains(buf.trim()) {
-				break buf.trim();
+			if guess.is_empty() {
+				println!("      Guess: {}", reccomendation);
+				break reccomendation;
+			} else if w.dictionary.contains(guess) {
+				break guess;
 			} else {
 				println!("Guess not in dictionary");
 				buf.clear();

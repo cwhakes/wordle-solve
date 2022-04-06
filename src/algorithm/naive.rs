@@ -39,7 +39,7 @@ impl Guesser for Naive {
 		if let Some(last) = history.last() {
 			self.remaining.retain(|w, _| last.matches(w));
 		} else {
-			return "sugar";
+			return "tares";
 		}
 
 		let total: f64 = self.remaining.values().sum();
