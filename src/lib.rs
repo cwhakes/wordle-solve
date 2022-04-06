@@ -137,10 +137,10 @@ impl Correctness {
 		out
 	}
 
-	fn check(answer: &str, guess: &str) -> [Self; 5] {
+	fn check(answer: impl AsRef<[u8]>, guess: impl AsRef<[u8]>) -> [Self; 5] {
 		let mut correctness = [Self::Wrong; 5];
-		let answer = wordle_array(answer).unwrap();
-		let guess = wordle_array(guess).unwrap();
+		let answer = <[u8; 5]>::try_from(answer.as_ref()).unwrap();
+		let guess = <[u8; 5]>::try_from(guess.as_ref()).unwrap();
 
 		let mut used = [false; 5];
 
@@ -199,17 +199,6 @@ impl<'a, G: Guesser + ?Sized> Guesser for &'a mut G {
 	}
 }
 
-fn wordle_array(word: &str) -> Option<[char; 5]> {
-	if word.len() != 5 {
-		return None;
-	}
-
-	let mut array = [char::default(); 5];
-	for (n, c) in word.chars().enumerate() {
-		array[n] = c;
-	}
-	Some(array)
-}
 #[cfg(test)]
 macro_rules! guesser {
 	(|$history: ident| $impl:block) => {{
