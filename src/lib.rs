@@ -17,7 +17,7 @@ use itertools::{iproduct, Itertools};
 const DICTIONARY: &str = include_str!("../dictionary.txt");
 
 pub struct Wordle {
-	dictionary: BTreeSet<&'static [u8]>,
+	dictionary: BTreeSet<Word>,
 	history: Vec<Guess>,
 }
 
@@ -26,7 +26,7 @@ impl Default for Wordle {
 		Self {
 			dictionary: DICTIONARY
 				.lines()
-				.filter_map(|w| w.split_once(' ').map(|w| w.0.as_ref()))
+				.filter_map(|w| w.split_once(' ').and_then(|w| Word::new(w.0)))
 				.collect(),
 			history: Vec::new(),
 		}
@@ -39,13 +39,12 @@ impl Wordle {
 
 		for n in 1..=6 {
 			let guess = guesser.guess(&self.history);
-			let guess: &[u8] = guess.as_ref();
-			debug_assert!(self.dictionary.contains(guess.as_ref()));
-			if guess == answer {
+			debug_assert!(self.dictionary.contains(&Word::new(&guess).unwrap()));
+			if guess.as_ref() == answer {
 				return Some(n);
 			}
-			let correctness = Correctness::check(answer, guess);
-			let guess = Guess::from_parts(guess, correctness);
+			let correctness = Correctness::check(answer, &guess);
+			let guess = Guess::from_parts(&guess, correctness);
 			println!("Guessed: {}", guess);
 			self.history.push(guess);
 		}
@@ -57,8 +56,7 @@ impl Wordle {
 	}
 
 	pub fn validate_guess(&self, guess: &str) -> bool {
-		let guess: &[u8] = guess.as_ref();
-		self.dictionary.contains(guess)
+		self.dictionary.contains(&Word::new(guess).unwrap())
 	}
 
 	pub fn guess(&mut self, guess: Guess) {
@@ -149,8 +147,20 @@ impl fmt::Display for Guess {
 	}
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct Word([u8; 5]);
+
+impl Word {
+	fn new(word: impl AsRef<[u8]>) -> Option<Self> {
+		word.as_ref().try_into().ok().map(Self)
+	}
+}
+
+impl AsRef<[u8]> for Word {
+	fn as_ref(&self) -> &[u8] {
+		&self.0
+	}
+}
 
 impl fmt::Debug for Word {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
