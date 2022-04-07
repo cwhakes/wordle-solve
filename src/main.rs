@@ -43,13 +43,13 @@ fn main() {
 
 	dbg!(&args.guesser);
 	match &args.command.unwrap_or_default() {
-		Command::List { max } => match &args.guesser {
+		Command::List { max } => match args.guesser {
 			GuesserArg::Minimax => list(*max, algorithm::Minimax::default),
 			GuesserArg::Naive => list(*max, algorithm::Naive::default),
 		},
-		Command::Cheat => match &args.guesser {
-			&GuesserArg::Minimax => cheat(algorithm::Minimax::default),
-			&GuesserArg::Naive => cheat(algorithm::Naive::default),
+		Command::Cheat => match args.guesser {
+			GuesserArg::Minimax => cheat(algorithm::Minimax::default),
+			GuesserArg::Naive => cheat(algorithm::Naive::default),
 		},
 	}
 }
@@ -58,7 +58,7 @@ fn list<G>(max: Option<usize>, guesser: impl Fn() -> G)
 where
 	G: Guesser,
 {
-	let w = Wordle::default();
+	let mut w = Wordle::default();
 	let mut guesser = guesser();
 
 	for answer in ANSWERS.lines().take(max.unwrap_or(usize::MAX)) {
@@ -78,13 +78,12 @@ fn cheat<G>(guesser: impl Fn() -> G)
 where
 	G: Guesser,
 {
-	let w = Wordle::default();
+	let mut w = Wordle::default();
 	let mut guesser = guesser();
-	let mut history = Vec::new();
 	for _ in 1..=6 {
 		println!();
-		let reccomendation = guesser.guess(&history);
-		println!("Reccomendation: {}", reccomendation);
+		let recommendation = w.recommend(&mut guesser);
+		println!("Recommendation: {}", recommendation);
 
 		let mut buf = String::new();
 		let guess = loop {
@@ -94,9 +93,9 @@ where
 			let guess = buf.trim();
 
 			if guess.is_empty() {
-				println!("      Guess: {}", reccomendation);
-				break reccomendation;
-			} else if w.dictionary.contains(guess) {
+				println!("      Guess: {}", recommendation);
+				break recommendation;
+			} else if w.validate_guess(guess) {
 				break guess;
 			} else {
 				println!("Guess not in dictionary");
@@ -105,24 +104,23 @@ where
 		};
 
 		let mut buf = String::new();
-		let correctness = loop {
+		let guess = loop {
 			print!("Correctness: ");
 			stdout().flush().unwrap();
 			stdin().read_line(&mut buf).unwrap();
-			if let Some(c) = Correctness::new(buf.trim()) {
-				break c;
+			if let Some(guess) = Guess::new(guess, buf.trim()) {
+				break guess;
 			} else {
 				println!("Invalid correctness mask");
 				buf.clear();
 			}
 		};
 
-		if correctness == Correctness::new("CCCCC").unwrap() {
+		if guess.is_correct() {
 			println!("You win!!");
 			return;
 		}
 
-		let guess = Guess::new(guess, correctness);
-		history.push(guess);
+		w.guess(guess);
 	}
 }

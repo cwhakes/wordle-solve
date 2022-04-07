@@ -50,7 +50,7 @@ impl Guesser for Naive {
 					let words_left: f64 = self
 						.remaining
 						.iter()
-						.filter(|(w, _)| Guess::new(word, mask).matches(w))
+						.filter(|(w, _)| Guess::from_parts(word, mask).matches(w))
 						.map(|(_, c)| *c)
 						.sum();
 					let p_pattern = words_left / total;
@@ -61,7 +61,7 @@ impl Guesser for Naive {
 					}
 				})
 				.sum();
-			
+
 			if let &mut Some(ref mut best) = &mut best {
 				if goodness > best.goodness {
 					*best = Candidate { word, goodness };

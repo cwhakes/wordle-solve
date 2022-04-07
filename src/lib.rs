@@ -14,7 +14,8 @@ use itertools::{iproduct, Itertools};
 const DICTIONARY: &str = include_str!("../dictionary.txt");
 
 pub struct Wordle {
-	pub dictionary: BTreeSet<&'static str>,
+	dictionary: BTreeSet<&'static str>,
+	history: Vec<Guess>,
 }
 
 impl Default for Wordle {
@@ -24,36 +25,61 @@ impl Default for Wordle {
 				.lines()
 				.filter_map(|w| w.split_once(' ').map(|w| w.0))
 				.collect(),
+			history: Vec::new(),
 		}
 	}
 }
 
 impl Wordle {
-	pub fn play<G: Guesser>(&self, answer: &'static str, mut guesser: G) -> Option<u8> {
-		let mut history = Vec::new();
+	pub fn play<G: Guesser>(&mut self, answer: &'static str, mut guesser: G) -> Option<u8> {
 		for n in 1..=6 {
-			let guess = guesser.guess(&history);
+			let guess = guesser.guess(&self.history);
 			debug_assert!(self.dictionary.contains(&*guess));
 			if guess == answer {
 				return Some(n);
 			}
 			let correctness = Correctness::check(answer, guess);
-			let guess = Guess::new(guess, correctness);
+			let guess = Guess::from_parts(guess, correctness);
 			println!("Guessed: {}", guess);
-			history.push(guess);
+			self.history.push(guess);
 		}
 		None
+	}
+
+	pub fn recommend<G: Guesser>(&self, guesser: &mut G) -> &'static str {
+		guesser.guess(&self.history)
+	}
+
+	pub fn validate_guess(&self, guess: &str) -> bool {
+		self.dictionary.contains(guess)
+	}
+
+	pub fn guess(&mut self, guess: Guess) {
+		self.history.push(guess);
+	}
+
+	pub fn reset(&mut self) {
+		self.history.clear()
 	}
 }
 
 #[derive(Debug)]
 pub struct Guess {
-	pub word: [u8; 5],
-	pub mask: [Correctness; 5],
+	word: [u8; 5],
+	mask: [Correctness; 5],
 }
 
 impl Guess {
-	pub fn new(word: &str, mask: [Correctness; 5]) -> Self {
+	pub fn new(word: &str, mask: &str) -> Option<Self> {
+		let mask = Correctness::new(mask)?;
+		Some(Self::from_parts(word, mask))
+	}
+
+	pub fn is_correct(&self) -> bool {
+		self.mask == Correctness::CORRRECT
+	}
+
+	fn from_parts(word: &str, mask: [Correctness; 5]) -> Self {
 		let word: &[u8] = word.as_bytes();
 		assert_eq!(5, word.len());
 		Self {
@@ -117,14 +143,16 @@ impl fmt::Display for Guess {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Correctness {
+enum Correctness {
 	Correct,
 	Misplaced,
 	Wrong,
 }
 
 impl Correctness {
-	pub fn new(s: &str) -> Option<[Self; 5]> {
+	const CORRRECT: [Self; 5] = [Self::Correct; 5];
+
+	fn new(s: &str) -> Option<[Self; 5]> {
 		s.chars()
 			.filter_map(|c| match c {
 				'c' | 'C' => Some(Self::Correct),
@@ -167,7 +195,7 @@ impl Correctness {
 		correctness
 	}
 
-	pub fn permutations() -> impl Iterator<Item = [Self; 5]> {
+	fn permutations() -> impl Iterator<Item = [Self; 5]> {
 		let x = [Self::Correct, Self::Misplaced, Self::Wrong];
 		iproduct!(x, x, x, x, x).map(|(a, b, c, d, e)| [a, b, c, d, e])
 	}
@@ -230,13 +258,13 @@ mod tests {
 		use super::{Guess, Wordle};
 		#[test]
 		fn play1() {
-			let w = Wordle::default();
+			let mut w = Wordle::default();
 			let guesser = guesser!(|_history| { "right" });
 			assert_eq!(w.play("right", guesser), Some(1));
 		}
 		#[test]
 		fn play32() {
-			let w = Wordle::default();
+			let mut w = Wordle::default();
 			let guesser = guesser!(|_history| { "wrong" });
 			assert_eq!(w.play("right", guesser), None);
 		}
@@ -255,10 +283,10 @@ mod tests {
 
 		macro_rules! check {
 			($prev:literal [$($mask:tt)+] allows $next:literal) => {
-				assert!(Guess::new($prev, mask![$($mask )+]).matches($next))
+				assert!(Guess::from_parts($prev, mask![$($mask )+]).matches($next))
 			};
 			($prev:literal [$($mask:tt)+] disallows $next:literal) => {
-				assert!(!Guess::new($prev, mask![$($mask )+]).matches($next))
+				assert!(!Guess::from_parts($prev, mask![$($mask )+]).matches($next))
 			};
 		}
 
