@@ -70,6 +70,7 @@ where
 			println!("Failed to guess {}", answer);
 			panic!();
 		}
+		w.reset();
 		guesser.reset();
 	}
 }
