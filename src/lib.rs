@@ -17,7 +17,7 @@ use itertools::{iproduct, Itertools};
 const DICTIONARY: &str = include_str!("../dictionary.txt");
 
 pub struct Wordle {
-	dictionary: BTreeSet<&'static str>,
+	dictionary: BTreeSet<&'static [u8]>,
 	history: Vec<Guess>,
 }
 
@@ -26,7 +26,7 @@ impl Default for Wordle {
 		Self {
 			dictionary: DICTIONARY
 				.lines()
-				.filter_map(|w| w.split_once(' ').map(|w| w.0))
+				.filter_map(|w| w.split_once(' ').map(|w| w.0.as_ref()))
 				.collect(),
 			history: Vec::new(),
 		}
@@ -35,9 +35,12 @@ impl Default for Wordle {
 
 impl Wordle {
 	pub fn play<G: Guesser>(&mut self, answer: &'static str, mut guesser: G) -> Option<u8> {
+		let answer: &[u8] = answer.as_ref();
+
 		for n in 1..=6 {
 			let guess = guesser.guess(&self.history);
-			debug_assert!(self.dictionary.contains(&*guess));
+			let guess: &[u8] = guess.as_ref();
+			debug_assert!(self.dictionary.contains(guess.as_ref()));
 			if guess == answer {
 				return Some(n);
 			}
@@ -49,11 +52,12 @@ impl Wordle {
 		None
 	}
 
-	pub fn recommend<G: Guesser>(&self, guesser: &mut G) -> &'static str {
-		guesser.guess(&self.history)
+	pub fn recommend<G: Guesser>(&self, guesser: &mut G) -> String {
+		String::from_utf8_lossy(guesser.guess(&self.history).as_ref()).to_string()
 	}
 
 	pub fn validate_guess(&self, guess: &str) -> bool {
+		let guess: &[u8] = guess.as_ref();
 		self.dictionary.contains(guess)
 	}
 
@@ -73,7 +77,7 @@ pub struct Guess {
 }
 
 impl Guess {
-	pub fn new(word: &str, mask: &str) -> Option<Self> {
+	pub fn new(word: impl AsRef<[u8]>, mask: &str) -> Option<Self> {
 		let mask = Correctness::new(mask)?;
 		Some(Self::from_parts(word, mask))
 	}
@@ -82,8 +86,8 @@ impl Guess {
 		self.mask == Correctness::CORRRECT
 	}
 
-	fn from_parts(word: &str, mask: [Correctness; 5]) -> Self {
-		let word: &[u8] = word.as_bytes();
+	fn from_parts(word: impl AsRef<[u8]>, mask: [Correctness; 5]) -> Self {
+		let word: &[u8] = word.as_ref();
 		assert_eq!(5, word.len());
 		Self {
 			word: Word(<[u8; 5]>::try_from(word).unwrap()),
@@ -91,8 +95,8 @@ impl Guess {
 		}
 	}
 
-	fn matches(&self, word: &str) -> bool {
-		let word = word.as_bytes();
+	fn matches(&self, word: impl AsRef<[u8]>) -> bool {
+		let word = word.as_ref();
 
 		let mut used = [false; 5];
 		for i in 0..5 {
@@ -230,12 +234,16 @@ impl fmt::Display for Correctness {
 }
 
 pub trait Guesser {
-	fn guess(&mut self, history: &[Guess]) -> &'static str;
+	type GuessFormat: AsRef<[u8]> + 'static;
+
+	fn guess(&mut self, history: &[Guess]) -> Self::GuessFormat;
 	fn reset(&mut self);
 }
 
 impl<'a, G: Guesser + ?Sized> Guesser for &'a mut G {
-	fn guess(&mut self, history: &[Guess]) -> &'static str {
+	type GuessFormat = G::GuessFormat;
+
+	fn guess(&mut self, history: &[Guess]) -> Self::GuessFormat {
 		(&mut **self).guess(history)
 	}
 
@@ -249,6 +257,8 @@ macro_rules! guesser {
 	(|$history: ident| $impl:block) => {{
 		struct G;
 		impl $crate::Guesser for G {
+			type GuessFormat = &'static str;
+
 			fn guess(&mut self, $history: &[Guess]) -> &'static str {
 				$impl
 			}

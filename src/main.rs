@@ -98,7 +98,7 @@ where
 
 			if guess.is_empty() {
 				println!("      Guess: {}", recommendation);
-				break recommendation;
+				break &*recommendation;
 			} else if w.validate_guess(guess) {
 				break guess;
 			} else {

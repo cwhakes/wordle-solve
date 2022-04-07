@@ -33,6 +33,8 @@ struct Candidate {
 }
 
 impl Guesser for WithVec {
+	type GuessFormat = &'static str;
+
 	fn guess(&mut self, history: &[Guess]) -> &'static str {
 		if let Some(last) = history.last() {
 			self.remaining.retain(|(w, _)| last.matches(w));
