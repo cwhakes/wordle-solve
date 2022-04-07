@@ -7,6 +7,9 @@ pub mod algorithm {
 
 	mod with_vec;
 	pub use with_vec::WithVec;
+
+	mod with_word;
+	pub use with_word::WithWord;
 }
 
 use std::collections::BTreeSet;
@@ -148,7 +151,7 @@ impl fmt::Display for Guess {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct Word([u8; 5]);
+pub struct Word([u8; 5]);
 
 impl Word {
 	fn new(word: impl AsRef<[u8]>) -> Option<Self> {

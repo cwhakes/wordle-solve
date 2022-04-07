@@ -9,7 +9,7 @@ const ANSWERS: &str = include_str!("../answers.txt");
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-	#[clap(short, long, arg_enum, default_value_t = GuesserArg::WithVec)]
+	#[clap(short, long, arg_enum, default_value_t = GuesserArg::WithWord)]
 	guesser: GuesserArg,
 	#[clap(subcommand)]
 	command: Option<Command>,
@@ -37,6 +37,7 @@ enum GuesserArg {
 	Minimax,
 	Naive,
 	WithVec,
+	WithWord,
 }
 
 fn main() {
@@ -48,11 +49,13 @@ fn main() {
 			GuesserArg::Minimax => list(*max, algorithm::Minimax::default),
 			GuesserArg::Naive => list(*max, algorithm::Naive::default),
 			GuesserArg::WithVec => list(*max, algorithm::WithVec::default),
+			GuesserArg::WithWord => list(*max, algorithm::WithWord::default),
 		},
 		Command::Cheat => match args.guesser {
 			GuesserArg::Minimax => cheat(algorithm::Minimax::default),
 			GuesserArg::Naive => cheat(algorithm::Naive::default),
 			GuesserArg::WithVec => cheat(algorithm::WithVec::default),
+			GuesserArg::WithWord => cheat(algorithm::WithWord::default),
 		},
 	}
 }
