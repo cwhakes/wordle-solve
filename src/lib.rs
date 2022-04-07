@@ -68,7 +68,7 @@ impl Wordle {
 
 #[derive(Debug)]
 pub struct Guess {
-	word: [u8; 5],
+	word: Word,
 	mask: [Correctness; 5],
 }
 
@@ -86,7 +86,7 @@ impl Guess {
 		let word: &[u8] = word.as_bytes();
 		assert_eq!(5, word.len());
 		Self {
-			word: <[u8; 5]>::try_from(word).unwrap(),
+			word: Word(<[u8; 5]>::try_from(word).unwrap()),
 			mask,
 		}
 	}
@@ -96,14 +96,14 @@ impl Guess {
 
 		let mut used = [false; 5];
 		for i in 0..5 {
-			let (g, w, m) = (self.word[i], word[i], self.mask[i]);
+			let (g, w, m) = (self.word.0[i], word[i], self.mask[i]);
 			match (m == Correctness::Correct, g == w) {
 				(true, true) => used[i] = true,
 				(false, false) => { /* do nothing */ },
 				_ => return false,
 			}
 		}
-		'outer: for (g, m) in self.word.iter().zip(self.mask) {
+		'outer: for (g, m) in self.word.0.iter().zip(self.mask) {
 			match m {
 				Correctness::Misplaced => {
 					// inner loop
@@ -133,7 +133,7 @@ impl Guess {
 
 impl fmt::Display for Guess {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{} [", std::str::from_utf8(&self.word).unwrap())?;
+		write!(f, "{} [", self.word)?;
 		let mut iter = self.mask.iter();
 		if let Some(c) = iter.next() {
 			write!(f, "{}", c)?;
@@ -142,6 +142,21 @@ impl fmt::Display for Guess {
 			write!(f, " {}", c)?;
 		}
 		write!(f, "]")
+	}
+}
+
+#[derive(PartialEq, Eq)]
+struct Word([u8; 5]);
+
+impl fmt::Debug for Word {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "\"{}\"", String::from_utf8_lossy(&self.0))
+	}
+}
+
+impl fmt::Display for Word {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{}", String::from_utf8_lossy(&self.0))
 	}
 }
 
