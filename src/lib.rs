@@ -4,6 +4,9 @@ pub mod algorithm {
 
 	mod naive;
 	pub use naive::Naive;
+
+	mod with_vec;
+	pub use with_vec::WithVec;
 }
 
 use std::collections::BTreeSet;
